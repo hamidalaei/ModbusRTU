@@ -147,12 +147,6 @@ void Reset_Modbus_Timer(void)
     HAL_TIM_Base_Start_IT(&htim6);      // شروع تایمر با وقفه
 }
 
-
-
-
-
-
-
 void Update_LEDs(void)
 {
     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,HoldingRegisters[0] ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -349,7 +343,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, LED1_Pin|LED2_Pin|LED3_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, LED1_Pin|LED2_Pin|LED3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : LED1_Pin LED2_Pin LED3_Pin */
   GPIO_InitStruct.Pin = LED1_Pin|LED2_Pin|LED3_Pin;
@@ -375,6 +369,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         Reset_Modbus_Timer();
     }
 }
+
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
