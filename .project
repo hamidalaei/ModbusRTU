@@ -29,4 +29,11 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>Library</name>
+			<type>2</type>
+			<location>D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library</location>
+		</link>
+	</linkedResources>
 </projectDescription>

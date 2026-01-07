@@ -1,0 +1,3 @@
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfunccoils.c:69:1:eMBFuncReadCoils	6
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfunccoils.c:148:1:eMBFuncWriteCoil	7
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfunccoils.c:202:1:eMBFuncWriteMultipleCoils	7

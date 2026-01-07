@@ -1,0 +1,6 @@
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mb.c:130:1:eMBInit	7
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mb.c:226:1:eMBRegisterCB	10
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mb.c:273:1:eMBClose	3
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mb.c:292:1:eMBEnable	2
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mb.c:310:1:eMBDisable	3
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mb.c:332:1:eMBPoll	13

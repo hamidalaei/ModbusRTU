@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "mb.h"
+#include "mbport.h"
+#include "port.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,25 +33,25 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define REG_HOLDING_START  1
+#define REG_HOLDING_NREGS  10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+void Update_LEDs(void);
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim6;
-
+TIM_HandleTypeDef htim7;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint16_t HoldingRegisters[10];
 
-uint8_t rxByte;
-uint8_t rxBuffer[256];
-uint16_t rxIndex = 0;
+
+USHORT usHoldingRegs[REG_HOLDING_NREGS];
+
 
 /* USER CODE END PV */
 
@@ -58,102 +60,93 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint16_t Modbus_CRC16(uint8_t *buf, uint16_t len)
+eMBErrorCode eMBRegHoldingCB(
+    UCHAR *pucRegBuffer,
+    USHORT usAddress,
+    USHORT usNRegs,
+    eMBRegisterMode eMode)
 {
-    uint16_t crc = 0xFFFF;
+    USHORT i;
 
-    for (uint16_t pos = 0; pos < len; pos++)
+    /* Modbus Address از 1 شروع می‌شود */
+    if (usAddress < REG_HOLDING_START)
+        return MB_ENOREG;
+
+    usAddress -= REG_HOLDING_START;
+
+    if ((usAddress + usNRegs) > REG_HOLDING_NREGS)
+        return MB_ENOREG;
+
+    /* ===== READ (FC03) ===== */
+    if (eMode == MB_REG_READ)
     {
-        crc ^= (uint16_t)buf[pos];
-
-        for (int i = 8; i != 0; i--)
+        for (i = 0; i < usNRegs; i++)
         {
-            if ((crc & 0x0001) != 0)
-            {
-                crc >>= 1;
-                crc ^= 0xA001;
-            }
-            else
-                crc >>= 1;
-        }
-    }
-    return crc;
-}
-
-void Modbus_ProcessFrame(uint8_t *frame, uint16_t len)
-{
-    if (frame[0] != 1) return; // Slave ID = 1
-
-    uint16_t crc_calc = Modbus_CRC16(frame, len - 2);
-    uint16_t crc_rx = frame[len-2] | (frame[len-1] << 8);
-
-    if (crc_calc != crc_rx) return;
-
-    if (frame[1] == 0x03)
-    {
-        uint16_t startAddr = (frame[2] << 8) | frame[3];
-        uint16_t quantity  = (frame[4] << 8) | frame[5];
-
-        Modbus_SendHoldingRegisters(startAddr, quantity);
-    }
-    if (frame[1] == 0x06)
-    {
-        uint16_t regAddr = (frame[2] << 8) | frame[3];
-        uint16_t regValue = (frame[4] << 8) | frame[5];
-
-        if (regAddr < 3) // فقط LEDها
-        {
-            HoldingRegisters[regAddr] = regValue;
-            Update_LEDs();
-
-            // Echo پاسخ طبق استاندارد Modbus
-            HAL_UART_Transmit(&huart2, frame, len, 100);
+            *pucRegBuffer++ = usHoldingRegs[usAddress + i] >> 8;
+            *pucRegBuffer++ = usHoldingRegs[usAddress + i] & 0xFF;
         }
     }
 
-}
-void Modbus_SendHoldingRegisters(uint16_t start, uint16_t qty)
-{
-    uint8_t txBuf[256];
-    uint8_t idx = 0;
-
-    txBuf[idx++] = 1;      // Slave ID
-    txBuf[idx++] = 0x03;   // Function
-    txBuf[idx++] = qty * 2;
-
-    for (int i = 0; i < qty; i++)
+    /* ===== WRITE (FC06 / FC16) ===== */
+    else if (eMode == MB_REG_WRITE)
     {
-        txBuf[idx++] = HoldingRegisters[start + i] >> 8;
-        txBuf[idx++] = HoldingRegisters[start + i] & 0xFF;
+        for (i = 0; i < usNRegs; i++)
+        {
+            usHoldingRegs[usAddress + i]  = (*pucRegBuffer++) << 8;
+            usHoldingRegs[usAddress + i] |= (*pucRegBuffer++);
+        }
+
+        Update_LEDs();   // اعمال روی سخت‌افزار
     }
 
-    uint16_t crc = Modbus_CRC16(txBuf, idx);
-    txBuf[idx++] = crc & 0xFF;
-    txBuf[idx++] = crc >> 8;
-
-    HAL_UART_Transmit(&huart2, txBuf, idx, 100);
-}
-
-
-void Reset_Modbus_Timer(void)
-{
-    __HAL_TIM_SET_COUNTER(&htim6, 0);   // صفر کردن شمارنده
-    HAL_TIM_Base_Start_IT(&htim6);      // شروع تایمر با وقفه
+    return MB_ENOERR;
 }
 
 void Update_LEDs(void)
 {
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,HoldingRegisters[0] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,
+        usHoldingRegs[0] ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14,HoldingRegisters[1] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14,
+        usHoldingRegs[1] ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15,HoldingRegisters[2] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15,
+        usHoldingRegs[2] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+
+
+
+eMBErrorCode eMBRegCoilsCB(
+    UCHAR *pucRegBuffer,
+    USHORT usAddress,
+    USHORT usNCoils,
+    eMBRegisterMode eMode)
+{
+    return MB_ENOREG;
+}
+
+eMBErrorCode eMBRegDiscreteCB(
+    UCHAR *pucRegBuffer,
+    USHORT usAddress,
+    USHORT usNDiscrete)
+{
+    return MB_ENOREG;
+}
+
+eMBErrorCode eMBRegInputCB(
+    UCHAR *pucRegBuffer,
+    USHORT usAddress,
+    USHORT usNRegs)
+{
+    return MB_ENOREG;
 }
 
 /* USER CODE END 0 */
@@ -189,18 +182,18 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart2, &rxByte, 1);
+  eMBInit(MB_RTU, 1, 0, 9600, MB_PAR_NONE);
+  eMBEnable();
 
-  HoldingRegisters[0] = 123;
-  HoldingRegisters[1] = 456;
-  HoldingRegisters[2] = 789;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  eMBPoll();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -293,6 +286,44 @@ static void MX_TIM6_Init(void)
 }
 
 /**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 8399;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 59;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -360,30 +391,10 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    if (huart->Instance == USART2)
-    {
-        rxBuffer[rxIndex++] = rxByte;
-        HAL_UART_Receive_IT(&huart2, &rxByte, 1);
-        Reset_Modbus_Timer();
-    }
-}
 
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    if (htim->Instance == TIM6)
-    {
-        HAL_TIM_Base_Stop_IT(&htim6);  // ⬅️ خیلی مهم
 
-        if (rxIndex > 0)
-        {
-            Modbus_ProcessFrame(rxBuffer, rxIndex);
-            rxIndex = 0;
-        }
-    }
-}
+
 
 /* USER CODE END 4 */
 

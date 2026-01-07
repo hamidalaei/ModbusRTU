@@ -1,0 +1,4 @@
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/portserial.c:37:1:vMBPortSerialEnable	3
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/portserial.c:57:1:xMBPortSerialInit	1
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/portserial.c:67:1:xMBPortSerialPutByte	1
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/portserial.c:76:1:xMBPortSerialGetByte	1

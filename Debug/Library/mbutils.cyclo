@@ -1,0 +1,3 @@
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbutils.c:47:1:xMBUtilSetBits	1
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbutils.c:86:1:xMBUtilGetBits	1
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbutils.c:117:1:prveMBError2Exception	5

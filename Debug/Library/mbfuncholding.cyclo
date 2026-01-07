@@ -1,0 +1,4 @@
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfuncholding.c:77:1:eMBFuncWriteHoldingRegister	3
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfuncholding.c:110:1:eMBFuncWriteMultipleHoldingRegister	6
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfuncholding.c:170:1:eMBFuncReadHoldingRegister	5
+D:/MECO Tools/Projects/STM32Cube/ModbusRTU/Library/mbfuncholding.c:235:1:eMBFuncReadWriteMultipleHoldingRegister	10

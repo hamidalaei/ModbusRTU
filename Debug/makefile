@@ -9,6 +9,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include Library/subdir.mk
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
@@ -52,6 +53,12 @@ default.size.stdout \
 OBJDUMP_LIST += \
 ModbusRTU.list \
 
+OBJCOPY_HEX += \
+ModbusRTU.hex \
+
+OBJCOPY_BIN += \
+ModbusRTU.bin \
+
 
 # All Target
 all: main-build
@@ -75,12 +82,22 @@ ModbusRTU.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+ModbusRTU.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "ModbusRTU.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+ModbusRTU.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "ModbusRTU.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) ModbusRTU.elf ModbusRTU.list ModbusRTU.map default.size.stdout
+	-$(RM) ModbusRTU.bin ModbusRTU.elf ModbusRTU.hex ModbusRTU.list ModbusRTU.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX) $(OBJCOPY_BIN)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'
